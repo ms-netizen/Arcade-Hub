@@ -2,10 +2,9 @@ import random
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 
-# --- CONFIGURATION ---
-BG_COLOR = "#1B2430"      # Darker background
-TEXT_COLOR = "#ECF0F1"    # Light Text
-ACCENT_COLOR = "#E74C3C"  # Red Accent
+BG_COLOR = "#1B2430"
+TEXT_COLOR = "#ECF0F1"
+ACCENT_COLOR = "#E74C3C"
 
 CARD_COLORS = {
     'Red': '#FF5252',
@@ -16,8 +15,6 @@ CARD_COLORS = {
     'Black': '#212121'
 }
 
-# ---------------- UNO LOGIC ---------------- #
-
 class UnoCard:
     def __init__(self, color, value):
         self.color = color
@@ -27,7 +24,6 @@ class UnoCard:
         if self.color == "Wild":
             return True
         return (self.color == top.color) or (self.value == top.value)
-
 
 class Player:
     def __init__(self, name, is_human=True):
@@ -42,23 +38,18 @@ class Player:
             return c
         return None
 
-
 def create_deck():
     colors = ['Red', 'Yellow', 'Green', 'Blue']
     values = [str(i) for i in range(10)] + ['Skip', 'Reverse', '+2']
-
     d = []
     for col in colors:
         d.append(UnoCard(col, '0'))
         for v in values[1:]:
             d.extend([UnoCard(col, v), UnoCard(col, v)])
-
     d.extend([UnoCard('Wild', 'Wild')] * 4)
     d.extend([UnoCard('Wild', '+4')] * 4)
-
     random.shuffle(d)
     return d
-
 
 class UnoAI:
     @staticmethod
@@ -66,13 +57,10 @@ class UnoAI:
         playable = [i for i, c in enumerate(hand) if c.is_playable_on(top)]
         if not playable:
             return None
-
-        # Prefer NON-wilds
         regular = [i for i in playable if hand[i].color != "Wild"]
         if regular:
             actions = [i for i in regular if hand[i].value in ['Skip', 'Reverse', '+2']]
             return random.choice(actions) if actions else random.choice(regular)
-
         return random.choice(playable)
 
     @staticmethod
@@ -82,8 +70,6 @@ class UnoAI:
             if c.color in count:
                 count[c.color] += 1
         return max(count, key=count.get) if max(count.values()) > 0 else "Red"
-
-# ---------------- GUI ---------------- #
 
 class ModernUnoGame:
     AI_DELAY = 1000
@@ -108,20 +94,16 @@ class ModernUnoGame:
         self._deal_cards()
         self._start_game()
 
-    # ---------------------------------------------------
-
     def _init_ui(self):
         self.master.columnconfigure(0, weight=1)
         self.master.rowconfigure(0, weight=1)
         self.master.rowconfigure(1, weight=2)
         self.master.rowconfigure(2, weight=2)
 
-        # --- Top Opponents ---
         self.frame_opponents = tk.Frame(self.master, bg=BG_COLOR)
         self.frame_opponents.grid(row=0, column=0, sticky="ew", padx=20, pady=10)
 
         self.opponent_widgets = []
-
         for i in range(1, 4):
             f = tk.LabelFrame(
                 self.frame_opponents,
@@ -139,11 +121,9 @@ class ModernUnoGame:
 
             self.opponent_widgets.append({"frame": f, "label": lbl})
 
-        # --- Table ---
         self.frame_table = tk.Frame(self.master, bg=BG_COLOR)
         self.frame_table.grid(row=1, column=0, pady=40)
 
-        # Draw deck
         self.btn_draw = tk.Button(
             self.frame_table,
             text="DRAW\nDECK",
@@ -157,7 +137,6 @@ class ModernUnoGame:
         )
         self.btn_draw.pack(side="left", padx=50)
 
-        # Discard pile
         self.lbl_discard = tk.Label(
             self.frame_table,
             text="?",
@@ -178,7 +157,6 @@ class ModernUnoGame:
         )
         self.lbl_color_status.pack(side="bottom", pady=10)
 
-        # Status text
         self.lbl_status = tk.Label(
             self.master,
             text="Welcome to UNO!",
@@ -188,7 +166,6 @@ class ModernUnoGame:
         )
         self.lbl_status.place(relx=0.5, rely=0.52, anchor="center")
 
-        # Human hand
         self.frame_hand = tk.LabelFrame(
             self.master,
             text="Your Hand",
@@ -211,8 +188,6 @@ class ModernUnoGame:
         )
         self.btn_uno.place(relx=0.9, rely=0.82)
 
-    # ---------------------------------------------------
-
     def _deal_cards(self):
         for _ in range(7):
             for p in self.players:
@@ -230,8 +205,6 @@ class ModernUnoGame:
         self._update_ui()
         self._process_turn()
 
-    # ---------------------------------------------------
-
     def _update_ui(self):
         top = self.discard_pile[-1]
         use_color = self.current_color if top.color == "Wild" else top.color
@@ -244,30 +217,25 @@ class ModernUnoGame:
             fg=fg
         )
 
-        # Opponents
         for i, w in enumerate(self.opponent_widgets):
             idx = i + 1
             if idx < len(self.players):
                 p = self.players[idx]
                 w["label"].config(text=f"{len(p.hand)} Cards")
-
                 if idx == self.turn_idx:
                     w["frame"].config(text=f"➤ {p.name}", fg="#F1C40F")
                 else:
                     w["frame"].config(text=p.name, fg=TEXT_COLOR)
 
-        # Status
         if self.players[self.turn_idx].is_human:
             self.lbl_status.config(text="YOUR TURN!", fg="#69F0AE")
         else:
             self.lbl_status.config(text=f"{self.players[self.turn_idx].name}'s Turn...", fg="#F1C40F")
 
-        # Hand
         for w in self.frame_hand.winfo_children():
             w.destroy()
 
         human = self.players[0]
-
         for idx, c in enumerate(human.hand):
             bg = CARD_COLORS.get(c.color, "#333")
             fg = "black" if c.color == "Yellow" else "white"
@@ -288,15 +256,10 @@ class ModernUnoGame:
             if self.turn_idx != 0:
                 b.config(state="disabled")
 
-        # UNO Button Logic
         if self.turn_idx == 0 and len(human.hand) <= 2:
             self.btn_uno.config(state="normal")
         else:
             self.btn_uno.config(state="disabled")
-
-    # ---------------------------------------------------
-    # GAME PLAY
-    # ---------------------------------------------------
 
     def _process_turn(self):
         if not self.game_active:
@@ -304,7 +267,6 @@ class ModernUnoGame:
 
         p = self.players[self.turn_idx]
 
-        # Win check
         if len(p.hand) == 0:
             self._game_over(p)
             return
@@ -317,8 +279,6 @@ class ModernUnoGame:
 
         self._update_ui()
 
-    # ---------------------------------------------------
-
     def _next_turn(self, skip=False):
         curr = self.players[self.turn_idx]
         if len(curr.hand) > 1:
@@ -328,15 +288,12 @@ class ModernUnoGame:
         self.turn_idx = (self.turn_idx + step * self.direction) % len(self.players)
         self._process_turn()
 
-    # ---------------------------------------------------
-
     def _play_card_logic(self, player, idx):
         card = player.hand.pop(idx)
         self.discard_pile.append(card)
 
         skip = False
 
-        # Action cards:
         if card.value == "Reverse":
             self.direction *= -1
             self.lbl_status.config(text=f"{player.name}: Reverse!", fg="#FF9999")
@@ -359,7 +316,6 @@ class ModernUnoGame:
             skip = True
             self.lbl_status.config(text=f"{player.name}: +4 Hit!", fg="#FF9999")
 
-        # Color change
         if card.color == "Wild":
             if player.is_human:
                 col = simpledialog.askstring("Wild", "Color (Red/Blue/Green/Yellow)?")
@@ -368,14 +324,11 @@ class ModernUnoGame:
                     col = "Red"
             else:
                 col = UnoAI.pick_color(player.hand)
-
             self.current_color = col
         else:
             self.current_color = card.color
 
         self._next_turn(skip)
-
-    # ---------------------------------------------------
 
     def _human_play(self, idx):
         if not self.game_active or self.turn_idx != 0:
@@ -398,12 +351,9 @@ class ModernUnoGame:
         else:
             messagebox.showwarning("Invalid", "You can't play that card!")
 
-    # ---------------------------------------------------
-
     def _human_draw(self):
         if not self.game_active or self.turn_idx != 0:
             return
-
         self.players[0].draw_card(self.deck)
         self._update_ui()
         self.master.after(600, self._next_turn)
@@ -412,8 +362,6 @@ class ModernUnoGame:
         self.uno_called[self.players[0].name] = True
         self.btn_uno.config(state="disabled")
         messagebox.showinfo("UNO!", "You called UNO!")
-
-    # ---------------------------------------------------
 
     def _ai_move(self):
         p = self.players[self.turn_idx]
@@ -430,8 +378,6 @@ class ModernUnoGame:
             p.draw_card(self.deck)
             self.master.after(600, self._next_turn)
 
-    # ---------------------------------------------------
-
     def _replenish_deck(self):
         if len(self.deck) < 2:
             top = self.discard_pile.pop()
@@ -439,17 +385,11 @@ class ModernUnoGame:
             random.shuffle(self.deck)
             self.discard_pile = [top]
 
-    # ---------------------------------------------------
-
     def _game_over(self, winner):
         self.game_active = False
         messagebox.showinfo("GAME OVER", f"{winner.name} WINS!")
         self.master.destroy()
 
-
-# ---------------------------------------------------------
-# RUN GAME
-# ---------------------------------------------------------
 if __name__ == "__main__":
     root = tk.Tk()
     ModernUnoGame(root, ["You", "Maximus", "Cassandra", "Turing"])
